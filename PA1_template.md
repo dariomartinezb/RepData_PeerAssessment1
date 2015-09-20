@@ -1,19 +1,15 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-author: "dariomartinezb"
-date: "Friday, September 18, 2015"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
+dariomartinezb  
+Friday, September 18, 2015  
 
 
 ## Loading and preprocessing the data
 
-```{r loading_and_cleaning_the_dataset, echo=TRUE, message=FALSE, warning=FALSE}
 
+```r
 # First I load a bunch of useful libraries
 library(dplyr)
+library(tidyr)
 library(lubridate)
 
 # I'm assuming the data is present in the directory
@@ -29,37 +25,49 @@ rawdata$date <- ymd(rawdata$date, tz="UTC")
 # I do not need incomplete cases, so I create a subset
 # with only complete cases
 subset_p1 <- rawdata %>% filter(complete.cases(.))
-
 ```
 
 ## What is mean total number of steps taken per day?
 Calculate the total number of steps taken per day
-```{r}
+
+```r
 # I need to compute the total steps per date.
 totalSteps_sub1 <- subset_p1 %>% 
                     group_by(date) %>%
                     summarise(totalSteps = sum(steps))
 ```
 Make a histogram of the total number of steps taken each day
-```{r}
+
+```r
 # Here I plot a histogram of the mean for totalSteps per date
 hist(totalSteps_sub1$totalSteps, main = "Total Steps per Date", col="red", xlab="Number of Steps")
 ```
 
-Calculate and report the mean and median of the total number of steps taken per day
-```{r}
+![](PA1_template_files/figure-html/unnamed-chunk-2-1.png) 
 
+Calculate and report the mean and median of the total number of steps taken per day
+
+```r
 # First, let's get the mean and print it
 print(mean(totalSteps_sub1$totalSteps))
+```
 
+```
+## [1] 10766.19
+```
+
+```r
 # Now, the same for the median
 print(median(totalSteps_sub1$totalSteps))
+```
 
+```
+## [1] 10765
 ```
 ## What is the average daily activity pattern?
 Make a time series plot (i.e. type = "l" ) of the 5minute interval (xaxis) and the average number of steps taken, averaged across all days (yaxis)
-```{r}
 
+```r
 # As I'm still ignoring the missing data observations, I can reuse
 # the subset_p1 data, regrouping it on a new dataset by interval.
 interval5 <- subset_p1 %>% 
@@ -70,49 +78,38 @@ interval5 <- subset_p1 %>%
 plot(interval5, type="l", main="Average daily activity pattern", xlab="5-minutes intervals", ylab="Steps", col="dark red")
 ```
 
-Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
-```{r}
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
 
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```r
 print(interval5 %>% filter(meanSteps==max(meanSteps)))
+```
+
+```
+## Source: local data frame [1 x 2]
+## 
+##   interval meanSteps
+## 1      835  206.1698
 ```
 ## Imputing missing values
 Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NA s)
-```{r}
+
+```r
 # I compute the nrow of a subset with only NOT complete cases
 print(nrow(rawdata %>% filter(!complete.cases(.))))
+```
 
+```
+## [1] 2304
 ```
 Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
-Create a new dataset that is equal to the original dataset but with the missing data filled in.
-```{r}
+
+```r
 # I will verify if an observation is incomplete, and if so, I will
 # assign the mean for that particular interval.
-avgdata <- rawdata
-row.names(interval5) <- interval5$interval
-indice <- which(is.na(avgdata$steps))
-avgdata[indice,1] <- interval5$meanSteps[interval5$interval==avgdata$interval[indice]]
-```
 
-Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day.
-```{r}
-totalSteps_sub2 <- avgdata %>% 
-                    group_by(date) %>%
-                    summarise(totalSteps = sum(steps))
-
-# And make a histogram of the data
-hist(totalSteps_sub2$totalSteps, main = "Total Steps per Date (incl. avg data)", col="green", xlab="Number of Steps")
-
-```
-
-Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
-
-```{r}
-# First, let's get the mean and print it
-print(mean(totalSteps_sub2$totalSteps, na.rm=TRUE))
-
-# Now, the same for the median
-print(median(totalSteps_sub2$totalSteps, na.rm=TRUE))
+avgdata <- mutate(rawdata, steps = ifelse(is.na(steps), interval5[match(rawdata$interval, interval5$interval),2], steps))
+avgdata$steps <- as.numeric(avgdata$steps[[1]])
 ```
 ## Are there differences in activity patterns between weekdays and weekends?
-```{r}
-dailyavgdata <- mutate(avgdata, weekdayname = ifelse(weekdays(date) %in% c('Saturday','Sunday'), 'Weekend', 'Weekday'))
